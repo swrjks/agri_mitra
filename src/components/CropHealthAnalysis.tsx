@@ -1,19 +1,58 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Upload, Camera, Leaf, AlertTriangle } from "lucide-react";
+import { Upload, Camera, Leaf } from "lucide-react";
 import { useState } from "react";
 
+interface DiseaseResult {
+  disease: string;
+  confidence: number;
+  severity: string;
+  advice: string;
+  precautions: string;
+}
+
 const CropHealthAnalysis = () => {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<DiseaseResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
+      setResult(null);
+      setError(null);
+    }
+  };
+
+  const analyzeImage = async () => {
+    if (!selectedFile) return;
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    const formData = new FormData();
+    formData.append("image", selectedFile);
+
+    try {
+      const res = await fetch("/detect_disease", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (data.error) {
+        setError(data.error);
+      } else {
+        setResult(data);
+      }
+    } catch (err) {
+      setError("Failed to analyze image. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -28,7 +67,7 @@ const CropHealthAnalysis = () => {
             </span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Upload crop images to get instant disease detection, yield predictions, and treatment recommendations
+            Upload crop images to get instant disease detection and farmer-friendly advice
           </p>
         </div>
 
@@ -47,12 +86,12 @@ const CropHealthAnalysis = () => {
             <CardContent className="p-6">
               <div className="space-y-6">
                 {/* Upload Area */}
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-                  {selectedImage ? (
+                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors relative">
+                  {preview ? (
                     <div className="space-y-4">
-                      <img 
-                        src={selectedImage} 
-                        alt="Uploaded crop" 
+                      <img
+                        src={preview}
+                        alt="Uploaded crop"
                         className="mx-auto max-w-full h-48 object-cover rounded-lg"
                       />
                       <p className="text-sm text-muted-foreground">Image uploaded successfully</p>
@@ -61,13 +100,16 @@ const CropHealthAnalysis = () => {
                     <div className="space-y-4">
                       <Upload className="w-12 h-12 text-muted-foreground mx-auto" />
                       <div>
-                        <p className="text-foreground font-medium">Drop your image here or click to upload</p>
+                        <p className="text-foreground font-medium">
+                          Drop your image here or click to upload
+                        </p>
                         <p className="text-sm text-muted-foreground mt-2">
                           Supports JPG, PNG files up to 10MB
                         </p>
                       </div>
                     </div>
                   )}
+                  {/* input only covers the box */}
                   <input
                     type="file"
                     accept="image/*"
@@ -76,12 +118,13 @@ const CropHealthAnalysis = () => {
                   />
                 </div>
 
-                <Button 
-                  variant="agricultural" 
-                  className="w-full" 
-                  disabled={!selectedImage}
+                <Button
+                  variant="agricultural"
+                  className="w-full"
+                  disabled={!selectedFile || loading}
+                  onClick={analyzeImage}
                 >
-                  Analyze Crop Health
+                  {loading ? "Analyzing…" : "Analyze Crop Health"}
                 </Button>
               </div>
             </CardContent>
@@ -89,58 +132,57 @@ const CropHealthAnalysis = () => {
 
           {/* Analysis Results */}
           <div className="space-y-6">
-            <h3 className="text-2xl font-bold text-foreground mb-6">Health Analysis Results</h3>
-            
-            {selectedImage ? (
+            <h3 className="text-2xl font-bold text-foreground mb-6">
+              Health Analysis Results
+            </h3>
+
+            {error && (
+              <Card className="border-l-4 border-l-destructive">
+                <CardContent className="p-4 text-destructive">{error}</CardContent>
+              </Card>
+            )}
+
+            {loading && (
+              <Card className="border border-border">
+                <CardContent className="p-6 text-center">
+                  <p className="text-primary font-medium">Analyzing image… please wait</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {result && (
               <div className="space-y-4">
+                {/* Disease */}
                 <Card className="border-l-4 border-l-accent">
                   <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <Leaf className="w-5 h-5 text-accent mt-0.5" />
-                      <div>
-                        <h4 className="font-semibold text-foreground">Crop Health: Good</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Your crop appears healthy with good leaf color and structure
-                        </p>
-                      </div>
-                    </div>
+                    <h4 className="font-semibold text-foreground">
+                      Disease: {result.disease}
+                    </h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Confidence: {(result.confidence * 100).toFixed(1)}% | Severity: {result.severity}
+                    </p>
                   </CardContent>
                 </Card>
 
-                <Card className="border-l-4 border-l-destructive">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-destructive mt-0.5" />
-                      <div>
-                        <h4 className="font-semibold text-foreground">Minor Nutrient Deficiency</h4>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Slight yellowing detected - consider nitrogen supplementation
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
+                {/* Advice */}
                 <Card className="border border-border">
                   <CardContent className="p-4">
-                    <h4 className="font-semibold text-foreground mb-2">Recommendations</h4>
-                    <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>• Apply nitrogen-rich fertilizer (20-10-10 NPK)</li>
-                      <li>• Monitor soil moisture levels</li>
-                      <li>• Check again in 7-10 days</li>
-                    </ul>
+                    <h4 className="font-semibold text-foreground mb-2">Advice</h4>
+                    <p className="text-sm">{result.advice}</p>
                   </CardContent>
                 </Card>
 
+                {/* Precautions */}
                 <Card className="border border-border">
                   <CardContent className="p-4">
-                    <h4 className="font-semibold text-foreground mb-2">Yield Prediction</h4>
-                    <p className="text-2xl font-bold text-accent">85% of Expected Yield</p>
-                    <p className="text-sm text-muted-foreground">Based on current health conditions</p>
+                    <h4 className="font-semibold text-foreground mb-2">Precautions</h4>
+                    <p className="text-sm">{result.precautions}</p>
                   </CardContent>
                 </Card>
               </div>
-            ) : (
+            )}
+
+            {!preview && !loading && !error && !result && (
               <Card className="border border-border/50">
                 <CardContent className="p-8 text-center">
                   <Leaf className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
