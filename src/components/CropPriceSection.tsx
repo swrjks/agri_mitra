@@ -1,24 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, MapPin, Calendar, Loader2, Target, BarChart3 } from "lucide-react";
 import { useState } from "react";
 import IndiaMap from "@/components/IndiaMap";
-import { fetchNearbyMarketPrices, generatePricePrediction, fetchAllMandiPrices, type MarketPrice, type PricePrediction } from "@/services/priceService";
-
-const mockPriceData = [
-  { crop: "Wheat", currentPrice: "₹2,150", change: "+5.2%", location: "Punjab" },
-  { crop: "Rice", currentPrice: "₹3,420", change: "-2.1%", location: "Haryana" },
-  { crop: "Cotton", currentPrice: "₹5,680", change: "+8.7%", location: "Gujarat" },
-  { crop: "Sugarcane", currentPrice: "₹350", change: "+3.4%", location: "Maharashtra" },
-];
+import {
+  fetchNearbyMarketPrices,
+  generatePricePrediction,
+  fetchAllMandiPrices,
+  fetchLastTwoPrices,
+  type MarketPrice,
+  type PricePrediction,
+} from "@/services/priceService";
 
 const indianStates = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", 
-  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", 
-  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", 
-  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", 
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
   "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
   "Delhi", "Chandigarh", "Puducherry", "Jammu and Kashmir", "Ladakh"
 ];
@@ -30,6 +29,7 @@ const CropPriceSection = () => {
   const [mandiLocation, setMandiLocation] = useState("");
   const [nearbyMarkets, setNearbyMarkets] = useState<MarketPrice[]>([]);
   const [allMandiPrices, setAllMandiPrices] = useState<MarketPrice[]>([]);
+  const [lastTwoPrices, setLastTwoPrices] = useState<MarketPrice[]>([]);
   const [prediction, setPrediction] = useState<PricePrediction | null>(null);
   const [loading, setLoading] = useState(false);
   const [predictionLoading, setPredictionLoading] = useState(false);
@@ -37,39 +37,40 @@ const CropPriceSection = () => {
 
   const handleGetNearbyMarkets = async () => {
     if (!selectedCrop || !location) return;
-    
     setLoading(true);
     try {
       const markets = await fetchNearbyMarketPrices(selectedCrop, location);
       setNearbyMarkets(markets);
     } catch (error) {
-      console.error('Error fetching nearby markets:', error);
+      console.error("Error fetching nearby markets:", error);
     }
     setLoading(false);
   };
 
   const handleGetPrediction = async () => {
     if (!selectedCrop || !location) return;
-    
     setPredictionLoading(true);
     try {
       const predictionResult = await generatePricePrediction(selectedCrop, location, selectedPeriod);
       setPrediction(predictionResult);
+
+      // 🔹 Fetch last 2 mandi prices
+      const last2 = await fetchLastTwoPrices(selectedCrop, location);
+      setLastTwoPrices(last2);
     } catch (error) {
-      console.error('Error generating prediction:', error);
+      console.error("Error generating prediction:", error);
     }
     setPredictionLoading(false);
   };
 
   const handleGetMandiPrices = async () => {
     if (!mandiLocation) return;
-    
     setMandiLoading(true);
     try {
-      const mandiPrices = await fetchAllMandiPrices(mandiLocation);
+      const mandiPrices = await fetchAllMandiPrices(mandiLocation, selectedPeriod);
       setAllMandiPrices(mandiPrices);
     } catch (error) {
-      console.error('Error fetching mandi prices:', error);
+      console.error("Error fetching mandi prices:", error);
     }
     setMandiLoading(false);
   };
@@ -77,6 +78,7 @@ const CropPriceSection = () => {
   return (
     <section className="py-20 px-6 bg-muted/30">
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             Real-time
@@ -89,6 +91,7 @@ const CropPriceSection = () => {
           </p>
         </div>
 
+        {/* Main Grid */}
         <div className="grid xl:grid-cols-3 lg:grid-cols-2 gap-8 items-start">
           {/* Price Prediction Form */}
           <Card className="border-2 border-primary/20 shadow-medium">
@@ -100,14 +103,13 @@ const CropPriceSection = () => {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
+                {/* Crop Select */}
                 <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Select Crop
-                  </label>
-                  <select 
+                  <label className="text-sm font-medium text-foreground mb-2 block">Select Crop</label>
+                  <select
                     value={selectedCrop}
                     onChange={(e) => setSelectedCrop(e.target.value)}
-                    className="w-full p-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full p-3 border border-border rounded-lg bg-background text-foreground"
                   >
                     <option value="wheat">Wheat</option>
                     <option value="rice">Rice</option>
@@ -115,14 +117,15 @@ const CropPriceSection = () => {
                     <option value="sugarcane">Sugarcane</option>
                   </select>
                 </div>
-                
+
+                {/* State Select */}
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
                     <MapPin className="w-4 h-4" />
                     Select State
                   </label>
                   <Select value={location} onValueChange={setLocation}>
-                    <SelectTrigger className="w-full focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Choose your state" />
                     </SelectTrigger>
                     <SelectContent className="max-h-60">
@@ -135,39 +138,31 @@ const CropPriceSection = () => {
                   </Select>
                 </div>
 
+                {/* Period Select */}
                 <div>
                   <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
                     Prediction Period
                   </label>
-                  <select 
+                  <select
                     value={selectedPeriod}
                     onChange={(e) => setSelectedPeriod(e.target.value)}
-                    className="w-full p-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full p-3 border border-border rounded-lg bg-background text-foreground"
                   >
                     <option value="current">Current Price</option>
-                    <option value="7 days">Next 7 days</option>
-                    <option value="15 days">Next 15 days</option>
-                    <option value="30 days">Next 30 days</option>
+                    <option value="7days">Next 7 days</option>
+                    <option value="15days">Next 15 days</option>
+                    <option value="30days">Next 30 days</option>
                   </select>
                 </div>
 
+                {/* Buttons */}
                 <div className="flex gap-2 mt-6">
-                  <Button 
-                    onClick={handleGetNearbyMarkets}
-                    disabled={!selectedCrop || !location || loading}
-                    className="flex-1"
-                    variant="outline"
-                  >
+                  <Button onClick={handleGetNearbyMarkets} disabled={!selectedCrop || !location || loading} className="flex-1" variant="outline">
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
                     Nearby Markets
                   </Button>
-                  <Button 
-                    onClick={handleGetPrediction}
-                    disabled={!selectedCrop || !location || predictionLoading}
-                    variant="agricultural" 
-                    className="flex-1"
-                  >
+                  <Button onClick={handleGetPrediction} disabled={!selectedCrop || !location || predictionLoading} variant="agricultural" className="flex-1">
                     {predictionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Target className="w-4 h-4" />}
                     Predict Price
                   </Button>
@@ -192,7 +187,7 @@ const CropPriceSection = () => {
                 </h3>
                 <div className="space-y-3">
                   {nearbyMarkets.slice(0, 5).map((market, index) => (
-                    <Card key={index} className="border border-border/50 hover:border-primary/30 transition-colors">
+                    <Card key={index} className="border border-border/50 hover:border-primary/30">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-center">
                           <div>
@@ -214,133 +209,105 @@ const CropPriceSection = () => {
               </div>
             )}
 
-            {/* Price Prediction Results */}
+            {/* Prediction Results */}
             {prediction && (
               <div>
                 <h3 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
                   <BarChart3 className="w-6 h-6 text-primary" />
-                  {prediction.period === 'Current' ? 'Current Price' : 'Price Prediction'}
+                  {prediction.period === "Current" ? "Current Price" : "Price Prediction"}
                 </h3>
                 <Card className="border-2 border-primary/20">
                   <CardContent className="p-6">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="text-xl font-bold text-foreground capitalize">{prediction.crop}</h4>
-                          <p className="text-muted-foreground">{prediction.location} • {prediction.period}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-3xl font-bold text-primary">{prediction.predictedPrice}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              prediction.trend === 'up' ? 'bg-accent/10 text-accent' :
-                              prediction.trend === 'down' ? 'bg-destructive/10 text-destructive' :
-                              'bg-muted text-muted-foreground'
-                            }`}>
-                              {prediction.trend === 'up' ? '↗ Rising' : 
-                               prediction.trend === 'down' ? '↘ Falling' : '→ Stable'}
-                            </span>
-                            <span className="text-sm text-muted-foreground">{prediction.confidence} confidence</span>
-                          </div>
-                        </div>
-                      </div>
-                      
+                    <div className="flex justify-between items-start">
                       <div>
-                        <h5 className="font-semibold text-foreground mb-2">Key Factors:</h5>
-                        <div className="flex flex-wrap gap-2">
-                          {prediction.factors.slice(0, 3).map((factor, index) => (
-                            <span key={index} className="px-2 py-1 bg-muted rounded-md text-xs text-muted-foreground">
-                              {factor}
-                            </span>
-                          ))}
-                        </div>
+                        <h4 className="text-xl font-bold text-foreground capitalize">{prediction.crop}</h4>
+                        <p className="text-muted-foreground">{prediction.location} • {prediction.period}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-3xl font-bold text-primary">{prediction.predictedPrice}</p>
+                        <p className="text-sm text-muted-foreground">{prediction.confidence} confidence</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
             )}
-
-            {/* Default Market Prices */}
-            <div>
-              <div className="mb-6">
-                <h3 className="text-2xl font-bold text-foreground mb-4">
-                  {selectedPeriod === "current" ? "Current Rates" : selectedPeriod === "7 days" ? "7 days prediction" : selectedPeriod === "15 days" ? "15 days prediction" : "30 days prediction"}
-                </h3>
-                <div className="flex gap-2 items-center">
-                  <Select value={mandiLocation} onValueChange={setMandiLocation}>
-                    <SelectTrigger className="w-48 focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                      <SelectValue placeholder="Select state" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-60">
-                      {indianStates.map((state) => (
-                        <SelectItem key={state} value={state}>
-                          {state}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    onClick={handleGetMandiPrices}
-                    disabled={!mandiLocation || mandiLoading}
-                    variant="outline"
-                    size="sm"
-                  >
-                    {mandiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get Prices"}
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                {(allMandiPrices.length > 0 ? allMandiPrices : mockPriceData.map(price => ({
-                  market: `${price.location} Market`,
-                  commodity: price.crop,
-                  state: price.location,
-                  district: price.location,
-                  price: price.currentPrice.replace('₹', '').replace(',', ''),
-                  arrival_date: new Date().toISOString().split('T')[0],
-                  min_price: (parseInt(price.currentPrice.replace('₹', '').replace(',', '')) - 200).toString(),
-                  max_price: (parseInt(price.currentPrice.replace('₹', '').replace(',', '')) + 300).toString(),
-                  modal_price: price.currentPrice.replace('₹', '').replace(',', '')
-                }))).slice(0, 8).map((price, index) => (
-                  <Card key={index} className="border border-border/50 hover:border-primary/30 transition-colors">
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h4 className="font-semibold text-foreground text-lg">{price.commodity}</h4>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {price.market}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{price.arrival_date}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-xl text-foreground">
-                            ₹{Math.round(parseFloat(price.modal_price) || 0).toLocaleString()}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            ₹{Math.round(parseFloat(price.min_price) || 0)} - ₹{Math.round(parseFloat(price.max_price) || 0)}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              
-              {allMandiPrices.length > 8 && (
-                <Button variant="outline" className="w-full mt-4">
-                  View All {allMandiPrices.length} Commodities
-                </Button>
-              )}
-              
-              {allMandiPrices.length === 0 && !mandiLoading && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Enter a location above to see live mandi prices for all commodities</p>
-                </div>
-              )}
-            </div>
           </div>
+        </div>
+
+        {/* 🔹 Current Rates Section */}
+        <div className="mt-16">
+          <div className="mb-6 flex gap-4 items-center">
+            <h3 className="text-2xl font-bold text-foreground">Current Rates</h3>
+            <Select value={mandiLocation} onValueChange={setMandiLocation}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select state" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {indianStates.map((state) => (
+                  <SelectItem key={state} value={state}>
+                    {state}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today's Price</SelectItem>
+                <SelectItem value="7days">Last 7 Days</SelectItem>
+                <SelectItem value="15days">Last 15 Days</SelectItem>
+                <SelectItem value="all">All Data</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button onClick={handleGetMandiPrices} disabled={!mandiLocation || mandiLoading} variant="outline">
+              {mandiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Get Prices"}
+            </Button>
+          </div>
+
+          {/* Table of Mandi Prices */}
+          {allMandiPrices.length > 0 && (
+            <div className="overflow-x-auto border rounded-lg">
+              <table className="w-full text-sm">
+                <thead className="bg-muted">
+                  <tr>
+                    <th className="p-2 text-left">Date</th>
+                    <th className="p-2 text-left">State</th>
+                    <th className="p-2 text-left">District</th>
+                    <th className="p-2 text-left">Market</th>
+                    <th className="p-2 text-left">Commodity</th>
+                    <th className="p-2 text-right">Min</th>
+                    <th className="p-2 text-right">Max</th>
+                    <th className="p-2 text-right">Modal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allMandiPrices.slice(0, 100).map((row, index) => (
+                    <tr key={index} className="border-t">
+                      <td className="p-2">{row.arrival_date}</td>
+                      <td className="p-2">{row.state}</td>
+                      <td className="p-2">{row.district}</td>
+                      <td className="p-2">{row.market}</td>
+                      <td className="p-2">{row.commodity}</td>
+                      <td className="p-2 text-right">₹{row.min_price}</td>
+                      <td className="p-2 text-right">₹{row.max_price}</td>
+                      <td className="p-2 text-right font-bold">₹{row.modal_price}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {allMandiPrices.length === 0 && !mandiLoading && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>Select a state and period to see mandi prices</p>
+            </div>
+          )}
         </div>
       </div>
     </section>
