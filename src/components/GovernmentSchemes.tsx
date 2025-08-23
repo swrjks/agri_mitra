@@ -1,178 +1,207 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { FileText, CheckCircle, Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, CheckCircle } from "lucide-react";
 
-const mockSchemes = [
-  {
-    name: "PM-KISAN Samman Nidhi",
-    description: "Direct income support of ₹6,000 per year to farmer families",
-    eligibility: "All landholding farmers",
-    amount: "₹6,000/year",
-    status: "Active",
-    deadline: "Ongoing",
-    category: "Income Support"
-  },
-  {
-    name: "Pradhan Mantri Crop Insurance Scheme",
-    description: "Comprehensive crop insurance against natural calamities",
-    eligibility: "All farmers including sharecroppers",
-    amount: "Up to ₹2 lakh",
-    status: "Active", 
-    deadline: "Before sowing season",
-    category: "Insurance"
-  },
-  {
-    name: "Soil Health Card Scheme",
-    description: "Free soil testing and nutrient recommendations",
-    eligibility: "All farmers",
-    amount: "Free service",
-    status: "Active",
-    deadline: "Ongoing",
-    category: "Advisory"
-  },
-  {
-    name: "Kisan Credit Card",
-    description: "Easy agricultural credit access at subsidized interest rates",
-    eligibility: "Landowner farmers",
-    amount: "Based on land holding",
-    status: "Active",
-    deadline: "Ongoing", 
-    category: "Credit"
-  }
-];
+interface Scheme {
+  code: string;
+  name: string;
+  description: string;
+  url: string;
+  reason: string;
+}
 
 const GovernmentSchemes = () => {
+  const [schemes, setSchemes] = useState<Scheme[]>([]);
+  const [notes, setNotes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Form state
+  const [land, setLand] = useState("");
+  const [income, setIncome] = useState("");
+  const [age, setAge] = useState("");
+  const [state, setState] = useState("");
+  const [isWoman, setIsWoman] = useState(false);
+  const [isSCST, setIsSCST] = useState(false);
+  const [isTenant, setIsTenant] = useState(false);
+  const [hasBank, setHasBank] = useState(true);
+
+  const checkEligibility = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        land: land || "0",
+        income: income || "0",
+        age: age || "0",
+        state: state || "",
+        is_woman: String(isWoman),
+        is_scst: String(isSCST),
+        is_tenant: String(isTenant),
+        has_bank: String(hasBank),
+      });
+
+      const res = await fetch(`http://127.0.0.1:5000/find_schemes?${params.toString()}`);
+      const data = await res.json();
+      setSchemes(data.schemes || []);
+      setNotes(data.notes || []);
+    } catch (err) {
+      console.error("Error fetching schemes:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section className="py-20 px-6 bg-background">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-            Government
-            <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Schemes
-            </span>
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover personalized scheme recommendations based on your profile, crops, and location
-          </p>
+      <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-8">
+        {/* Eligibility Checker */}
+        <div className="lg:col-span-1">
+          <Card className="border-2 border-primary/20 shadow-medium sticky top-8">
+            <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5">
+              <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                <CheckCircle className="w-5 h-5 text-primary" />
+                Eligibility Checker
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <Input
+                placeholder="Land Size (acres)"
+                value={land}
+                onChange={(e) => setLand(e.target.value)}
+              />
+              <Input
+                placeholder="Annual Income (₹)"
+                value={income}
+                onChange={(e) => setIncome(e.target.value)}
+              />
+              <Input
+                placeholder="Age"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+              />
+
+              <div>
+                <label className="text-sm font-medium mb-1 block flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  State
+                </label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                >
+                  <option value="">Select State</option>
+                  <option>Punjab</option>
+                  <option>Haryana</option>
+                  <option>Gujarat</option>
+                  <option>Maharashtra</option>
+                  <option>Karnataka</option>
+                  <option>Bihar</option>
+                  <option>Uttar Pradesh</option>
+                  <option>Tamil Nadu</option>
+                  <option>Rajasthan</option>
+                  <option>Madhya Pradesh</option>
+                </select>
+              </div>
+
+              {/* Chips / checkboxes */}
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={isWoman}
+                    onChange={(e) => setIsWoman(e.target.checked)}
+                  />
+                  Woman
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={isSCST}
+                    onChange={(e) => setIsSCST(e.target.checked)}
+                  />
+                  SC/ST
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={isTenant}
+                    onChange={(e) => setIsTenant(e.target.checked)}
+                  />
+                  Tenant Farmer
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={hasBank}
+                    onChange={(e) => setHasBank(e.target.checked)}
+                  />
+                  Has Bank Account
+                </label>
+              </div>
+
+              <Button onClick={checkEligibility} className="w-full">
+                {loading ? "Checking..." : "Check Eligibility"}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Eligibility Checker */}
-          <div className="lg:col-span-1">
-            <Card className="border-2 border-primary/20 shadow-medium sticky top-8">
-              <CardHeader className="bg-gradient-to-r from-primary/5 to-accent/5">
-                <CardTitle className="text-xl font-bold text-foreground flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-primary" />
-                  Eligibility Checker
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Land Size (acres)
-                  </label>
-                  <Input placeholder="e.g. 2.5" />
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Primary Crop
-                  </label>
-                  <select className="w-full p-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option>Wheat</option>
-                    <option>Rice</option>
-                    <option>Cotton</option>
-                    <option>Sugarcane</option>
-                  </select>
-                </div>
+        {/* Schemes List */}
+        <div className="lg:col-span-2 space-y-6">
+          <h3 className="text-2xl font-bold">Available Schemes</h3>
+          {schemes.length === 0 && notes.length === 0 && (
+            <p className="text-muted-foreground">
+              Fill form and check eligibility to see recommendations
+            </p>
+          )}
 
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    State
-                  </label>
-                  <select className="w-full p-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option>Punjab</option>
-                    <option>Haryana</option>
-                    <option>Gujarat</option>
-                    <option>Maharashtra</option>
-                  </select>
+          {/* Schemes */}
+          {schemes.map((scheme, i) => (
+            <Card key={i} className="border hover:border-primary/30 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <h4 className="font-bold">{scheme.name}</h4>
+                  <Badge>{scheme.code}</Badge>
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-2 block">
-                    Farmer Type
-                  </label>
-                  <select className="w-full p-3 border border-border rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary">
-                    <option>Small & Marginal</option>
-                    <option>Medium</option>
-                    <option>Large</option>
-                    <option>Sharecropper</option>
-                  </select>
+                <p className="mb-2">{scheme.description}</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Why: {scheme.reason}
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant="agricultural"
+                    size="sm"
+                    onClick={() => window.open(scheme.url, "_blank")}
+                  >
+                    Apply Now
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(scheme.url, "_blank")}
+                  >
+                    Learn More
+                  </Button>
                 </div>
-
-                <Button variant="agricultural" className="w-full">
-                  Check Eligibility
-                </Button>
               </CardContent>
             </Card>
-          </div>
+          ))}
 
-          {/* Schemes List */}
-          <div className="lg:col-span-2 space-y-6">
-            <h3 className="text-2xl font-bold text-foreground">Available Schemes for You</h3>
-            
-            <div className="space-y-4">
-              {mockSchemes.map((scheme, index) => (
-                <Card key={index} className="border border-border/50 hover:border-primary/30 transition-colors">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h4 className="font-bold text-lg text-foreground">{scheme.name}</h4>
-                          <Badge variant="outline" className="bg-accent/10 text-accent border-accent/20">
-                            {scheme.category}
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground mb-3">{scheme.description}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Benefit Amount</p>
-                        <p className="text-lg font-bold text-accent">{scheme.amount}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Application Deadline</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {scheme.deadline}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="text-sm font-medium text-foreground mb-1">Eligibility</p>
-                      <p className="text-sm text-muted-foreground">{scheme.eligibility}</p>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <Button variant="agricultural" size="sm">
-                        Apply Now
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        Learn More
-                      </Button>
-                    </div>
+          {/* Notes */}
+          {notes.length > 0 && (
+            <div className="space-y-2">
+              {notes.map((note, idx) => (
+                <Card key={idx} className="bg-green-50 border-green-200">
+                  <CardContent className="p-3 text-sm text-green-800">
+                    {note}
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </section>

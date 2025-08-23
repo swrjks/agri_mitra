@@ -70,6 +70,8 @@ Return ONLY valid JSON (no markdown). Schema:
 }
 """
 
+import re
+
 @app.route("/detect_disease", methods=["POST"])
 def detect_disease():
     try:
@@ -83,17 +85,38 @@ def detect_disease():
         image_bytes = buf.getvalue()
 
         model_g = genai.GenerativeModel("gemini-1.5-flash")
-        resp = model_g.generate_content([DISEASE_PROMPT, {"mime_type": "image/jpeg", "data": image_bytes}])
+        resp = model_g.generate_content(
+            [DISEASE_PROMPT, {"mime_type": "image/jpeg", "data": image_bytes}]
+        )
 
         text = getattr(resp, "text", "") or ""
-        try:
-            parsed = json.loads(text)
-        except Exception:
-            parsed = {"disease": "Unknown", "confidence": 0.0, "severity": "none", "advice": text[:200]}
+
+        # 🔹 Try to extract JSON substring (between first { and last })
+        json_str = None
+        if "{" in text and "}" in text:
+            json_str = text[text.find("{"): text.rfind("}")+1]
+
+        parsed = None
+        if json_str:
+            try:
+                parsed = json.loads(json_str)
+            except Exception:
+                pass
+
+        if not parsed:
+            parsed = {
+                "disease": "Unknown",
+                "confidence": 0.0,
+                "severity": "none",
+                "advice": text[:200],  # fallback: raw text preview
+                "precautions": ""
+            }
 
         return jsonify(parsed)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # ---------------- Crop Prices ----------------
 @app.route("/get_price", methods=["GET"])
@@ -118,7 +141,6 @@ def get_price():
         if market:
             params["filters[Market]"] = market
 
-        # Fetch raw data
         resp = requests.get(PRICING_BASE_URL, params=params, timeout=20)
         resp.raise_for_status()
         data = resp.json()
@@ -128,7 +150,6 @@ def get_price():
 
         records = data["records"]
 
-        # ---- Apply date filters ----
         def parse_date(d):
             try:
                 return datetime.strptime(d, "%d/%m/%Y")
@@ -155,7 +176,6 @@ def get_price():
         if not filtered:
             return jsonify({"error": "No records match filter"}), 404
 
-        # ---- Format clean output ----
         df = pd.DataFrame(filtered)
         cols = ['Arrival_Date','State','District','Market','Commodity',
                 'Min_Price','Max_Price','Modal_Price']
@@ -226,9 +246,60 @@ def predict_price():
         return jsonify({"error": str(e)}), 500
 
 # ---------------- Schemes ----------------
-@app.route("/get_schemes", methods=["GET"])
-def get_schemes():
-    return jsonify({"message": "Schemes API integration pending", "key_present": bool(SCHEMES_API_KEY)})
+SCHEMES = [
+    {"code": "PMKISAN", "name": "PM-KISAN Samman Nidhi", "description": "Income support ₹6,000/year", "url": "https://pmkisan.gov.in/"},
+    {"code": "PMFBY", "name": "Pradhan Mantri Fasal Bima Yojana", "description": "Crop insurance scheme", "url": "https://pmfby.gov.in/"},
+    {"code": "AIF", "name": "Agri Infrastructure Fund", "description": "Infra projects financing", "url": "https://www.agriinfra.dac.gov.in/"},
+    {"code": "KCC", "name": "Kisan Credit Card", "description": "Easy credit access", "url": "https://www.myscheme.gov.in/schemes/kcc"},
+    {"code": "ENAM", "name": "e-NAM", "description": "National Agriculture Market", "url": "https://www.enam.gov.in/web/"},
+]
+
+@app.route("/find_schemes", methods=["GET"])
+def find_schemes():
+    try:
+        land = float(request.args.get("land", 0))
+        income = float(request.args.get("income", 0))
+        age = int(request.args.get("age", 0))
+        state = request.args.get("state")
+        is_woman = request.args.get("is_woman", "false").lower() == "true"
+        is_scst = request.args.get("is_scst", "false").lower() == "true"
+        is_tenant = request.args.get("is_tenant", "false").lower() == "true"
+        has_bank = request.args.get("has_bank", "true").lower() == "true"
+
+        recs = []
+
+        if land > 0 and has_bank:
+            recs.append({"code": "PMKISAN", "reason": "Landholding detected + bank account"})
+
+        if land > 0 or is_tenant:
+            recs.append({"code": "PMFBY", "reason": "Crop insurance covers risks"})
+
+        if has_bank:
+            recs.append({"code": "KCC", "reason": "Kisan Credit Card can provide flexible credit"})
+
+        if land >= 1 or income >= 200000:
+            recs.append({"code": "AIF", "reason": "Eligible for infra financing"})
+
+        recs.append({"code": "ENAM", "reason": "Better market access via e-NAM"})
+
+        results = []
+        for r in recs:
+            scheme = next((s for s in SCHEMES if s["code"] == r["code"]), None)
+            if scheme:
+                results.append({**scheme, "reason": r["reason"]})
+
+        notes = []
+        if is_woman:
+            notes.append("Women farmers may receive priority/extra benefits.")
+        if is_scst:
+            notes.append("SC/ST beneficiaries often get relaxed criteria or higher benefits.")
+        if age > 0 and age < 18:
+            notes.append("Some schemes may require guardian co-applicant if under 18.")
+
+        return jsonify({"schemes": results, "notes": notes})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
