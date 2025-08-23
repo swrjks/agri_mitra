@@ -1,73 +1,86 @@
-# Welcome to your Lovable project
+# 🌾 KrishiMitra – One-Stop Farmer Ecosystem  
 
-## Project info
+KrishiMitra is a **One-Stop Digital Solution** designed to empower farmers by addressing challenges such as **unfair pricing, high equipment costs, counterfeit tools, lack of crop guidance, disease prevention, and scheme awareness**.  
 
-**URL**: https://lovable.dev/projects/9900a19d-69a1-4fae-afd5-a236b565ada3
+The solution is available as both a **Flutter Mobile App** and a **React Web Platform**, ensuring accessibility across devices.  
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 📌 Features  
 
-**Use Lovable**
+- ✅ **Secure User Authentication** – Aadhaar/PAN-based KYC to ensure legitimate users.  
+- ✅ **Equipment Rental & Lending** – Farmers can rent or lend agricultural equipment to reduce costs.  
+- ✅ **Product Certification & Compliance** – Certified label for genuine equipment.  
+- ✅ **Soil-Based Crop Recommendation** – Suggests the most suitable crops based on soil parameters.  
+- ✅ **Crop Disease Detection** – AI-powered detection and advisory from crop images.  
+- ✅ **Commodity Price Aggregation & Analytics** – Real-time and historical mandi prices with trends.  
+- ✅ **Interactive India Map Visualization** – State-wise and nationwide crop price transparency.  
+- ✅ **Government Schemes Integration** – Personalized scheme recommendations using MyScheme/AgriWelfare APIs.  
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9900a19d-69a1-4fae-afd5-a236b565ada3) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Problem–Solution Mapping  
 
-**Use your preferred IDE**
+| **Problem Faced by Farmers** | **Our Solution – KrishiMitra** |
+|-------------------------------|--------------------------------|
+| Unfair Pricing | Real-time + historical mandi prices with analytics and India map view |
+| High Equipment Costs | Rental & lending marketplace for agricultural tools |
+| Counterfeit Products | Certified label system + Aadhaar/PAN verification |
+| Lack of Crop Guidance | Soil-data-based crop recommendation |
+| Crop Losses Due to Diseases | AI-powered disease detection & treatment suggestions |
+| Low Awareness of Schemes | Integrated government schemes portal |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## ⚙️ Tech Stack  
 
-Follow these steps:
+| Component | Technology Used |
+|-----------|-----------------|
+| Mobile App | Flutter |
+| Web App | React |
+| Database | SQLite (with user sync) |
+| Backend / APIs | Flask / FastAPI |
+| AI/ML Models | Crop Recommendation, Disease Detection, Price Prediction |
+| Security | Aadhaar/PAN verification, Encrypted login |
+| Integrations | MyScheme API, AgriWelfare API, Govt. Mandi Price APIs |
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🚀 Deployment Readiness  
 
-# Step 3: Install the necessary dependencies.
-npm i
+- 📱 **Mobile App:** Built in Flutter, with SQLite database and real-time sync.  
+- 💻 **Web App:** React-based, lightweight, responsive, and accessible.  
+- 🔒 **Security:** Aadhaar/PAN-based login ensures only verified users.  
+- 🗺️ **Visualization:** Real-time India Map for nationwide crop price insights.  
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## 📽️ Demo & Access  
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- 🎥 [YouTube Demo 1](https://www.youtube.com/watch?v=XXXXX)  
+- 🎥 [YouTube Demo 2](https://www.youtube.com/watch?v=YYYYY)  
+- 📲 [Download APK](https://example.com/krishimitra.apk)  
+- 🌐 [Live Website](https://example.com/krishimitra)  
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📂 Setup Instructions  
 
-## What technologies are used for this project?
+### 🔹 Backend (Flask / FastAPI)
+```bash
+# Clone repo
+git clone https://github.com/your-repo/krishimitra.git
 
-This project is built with:
+cd krishimitra/backend             # Navigate to backend folder
+python -m venv venv                # Create virtual environment (recommended)
+venv\Scripts\activate              # Activate venv (Windows)
+pip install -r requirements.txt    # Install dependencies
+python app.py                      # Run backend server
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+cd ../frontend                     # Navigate to frontend folder
+npm i                              # Install dependencies
+npm run dev                        # Start development server (Vite) / use npm start if CRA
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9900a19d-69a1-4fae-afd5-a236b565ada3) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+cd ../mobile                       # Navigate to Flutter app folder
+flutter pub get                    # Get dependencies
+flutter run                        # Run app on emulator / device
