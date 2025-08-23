@@ -8,6 +8,10 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      // 🔹 Forward API calls to Flask
+      "/predict": "http://127.0.0.1:5000",
+    },
   },
   plugins: [
     react(),

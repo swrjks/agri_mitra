@@ -15,15 +15,50 @@ const CropRecommendation = () => {
     ph: "",
     rainfall: ""
   });
-  const [showRecommendation, setShowRecommendation] = useState(false);
+
+  const [recommendedCrop, setRecommendedCrop] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowRecommendation(true);
+    setLoading(true);
+    setErrorMsg(null);
+    setRecommendedCrop(null);
+
+    try {
+      const response = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nitrogen: parseFloat(formData.nitrogen),
+          phosphorous: parseFloat(formData.phosphorous),
+          potassium: parseFloat(formData.potassium),
+          temperature: parseFloat(formData.temperature),
+          humidity: parseFloat(formData.humidity),
+          ph: parseFloat(formData.ph),
+          rainfall: parseFloat(formData.rainfall),
+        }),
+      });
+
+      const data = await response.json();
+      console.log("API response:", data);
+
+      if (response.ok && data.recommended_crop) {
+        setRecommendedCrop(data.recommended_crop);
+      } else {
+        setErrorMsg(data.error || "Prediction failed");
+      }
+    } catch (err) {
+      console.error("Request error:", err);
+      setErrorMsg("Server error. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const isFormValid = Object.values(formData).every(value => value.trim() !== "");
@@ -65,7 +100,7 @@ const CropRecommendation = () => {
                     onChange={(e) => handleInputChange("nitrogen", e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="phosphorous">Amount of Phosphorous</Label>
                   <Input
@@ -76,7 +111,7 @@ const CropRecommendation = () => {
                     onChange={(e) => handleInputChange("phosphorous", e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="potassium">Amount of Potassium</Label>
                   <Input
@@ -87,7 +122,7 @@ const CropRecommendation = () => {
                     onChange={(e) => handleInputChange("potassium", e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="temperature">Soil Temperature (°C)</Label>
                   <Input
@@ -98,7 +133,7 @@ const CropRecommendation = () => {
                     onChange={(e) => handleInputChange("temperature", e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="humidity">Soil Humidity (%)</Label>
                   <Input
@@ -109,7 +144,7 @@ const CropRecommendation = () => {
                     onChange={(e) => handleInputChange("humidity", e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="ph">Soil pH</Label>
                   <Input
@@ -121,7 +156,7 @@ const CropRecommendation = () => {
                     onChange={(e) => handleInputChange("ph", e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="rainfall">Amount of Rainfall (mm/month)</Label>
                   <Input
@@ -134,17 +169,17 @@ const CropRecommendation = () => {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                variant="agricultural" 
+              <Button
+                type="submit"
+                variant="agricultural"
                 className="w-full"
-                disabled={!isFormValid}
+                disabled={!isFormValid || loading}
               >
-                Get Crop Recommendation
+                {loading ? "Analyzing..." : "Get Crop Recommendation"}
               </Button>
             </form>
 
-            {showRecommendation && (
+            {(recommendedCrop || errorMsg) && (
               <div className="mt-8 p-6 bg-primary/5 border border-primary/20 rounded-lg">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="p-3 bg-primary/10 rounded-lg">
@@ -156,11 +191,18 @@ const CropRecommendation = () => {
                   </div>
                 </div>
                 <div className="bg-background p-4 rounded-lg border">
-                  <h4 className="text-2xl font-bold text-primary mb-2">Wheat</h4>
-                  <p className="text-muted-foreground">
-                    Based on your soil parameters, wheat is the optimal crop choice for your field. 
-                    Wheat thrives in the conditions you've provided and should yield excellent results.
-                  </p>
+                  {errorMsg ? (
+                    <p className="text-red-500 font-semibold">
+                      ⚠ {errorMsg}
+                    </p>
+                  ) : (
+                    <>
+                      <h4 className="text-2xl font-bold text-primary mb-2">{recommendedCrop}</h4>
+                      <p className="text-muted-foreground">
+                        Based on your soil parameters, {recommendedCrop} is the optimal crop choice for your field.
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             )}

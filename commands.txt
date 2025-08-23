@@ -25,7 +25,7 @@ rmdir /s /q tf_venv
    git branch -M main
 
 6. Add the GitHub repo as the remote:
-   git remote add origin https://github.com/swrjks
+   git remote add origin https://github.com/swrjks/agri_mitra.git
 
 7. Push your code to GitHub:
    git push -u origin main
