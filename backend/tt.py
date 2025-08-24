@@ -110,8 +110,8 @@ class DataGovMarketData:
 
 
 def main():
-    API_KEY = "579b464db66ec23bdd0000010baed15d539144fa62035eb3cd19e551"
-    RESOURCE_ID = "35985678-0d79-46b4-9ed6-6f13308a1d24"
+    API_KEY = ""
+    RESOURCE_ID = "35985678-0d79-46b4-9ed6-6f13308a1d2"
 
     data_client = DataGovMarketData(API_KEY, RESOURCE_ID)
 
